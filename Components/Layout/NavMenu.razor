@@ -1,0 +1,74 @@
+﻿@rendermode InteractiveServer
+@using PlantCatalog.Components.Services
+@using PlantCatalog.Components.Models
+@inject SessionManager SessionManager
+@inject NavigationManager NavigationManager
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">PlantCatalog</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<!-- d-flex flex-column прижимает блок к низу -->
+<div class="nav-scrollable d-flex flex-column" style="background: linear-gradient(180deg, #1bdd6fa8 0%, #efff78bc 100%);">
+    <nav class="nav flex-column flex-grow-1">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Главная
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cart">
+                <span class="bi bi-cart-fill-nav-menu" aria-hidden="true"></span> Корзина
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="products">
+                <span class="bi bi-box-seam-fill-nav-menu" aria-hidden="true"></span> Каталог товаров
+            </NavLink>
+        </div>
+    </nav>
+
+    <!-- 🔐 ЛИЧНЫЙ КАБИНЕТ (строго внизу) -->
+    <div class="p-3 border-top border-secondary">
+        <div class="text-dark fw-bold mb-2">Личный кабинет</div>
+
+        @if (SessionManager.CurrentUser == null)
+        {
+            <!-- НЕ АВТОРИЗОВАН -->
+            <div class="text-dark small mb-2">Вы ещё не вошли в аккаунт</div>
+            <NavLink href="/register" class="btn btn-sm btn-outline-dark w-100 mb-2">Зарегистрироваться</NavLink>
+            <NavLink href="/login" class="text-dark small text-center d-block">Уже есть аккаунт? Войти</NavLink>
+        }
+        else
+        {
+            <!-- АВТОРИЗОВАН -->
+            <div class="text-dark mb-3">Добрый день, @SessionManager.CurrentUser.Name! 👋</div>
+            <button @onclick="HandleLogout" class="btn btn-sm btn-outline-danger w-100">Выйти из аккаунта</button>
+        }
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Подписываемся на уведомления об изменении сессии
+        SessionManager.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        // Отписываемся при удалении компонента (чтобы не было утечек памяти)
+        SessionManager.OnChange -= StateHasChanged;
+    }
+
+    private void HandleLogout()
+    {
+        SessionManager.CurrentUser = null;
+        SessionManager.NotifyStateChanged(); // Уведомляем об изменении
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+}

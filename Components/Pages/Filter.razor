@@ -1,0 +1,88 @@
+@page "/filter"
+@rendermode InteractiveServer
+@using PlantCatalog.Components.Models
+@using PlantCatalog.Components.Services
+@inject IProductService ProductService
+@inject NavigationManager NavManager
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">🔍 Фильтр товаров</h2>
+        <a href="/" class="btn btn-outline-secondary">← На главную</a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">📂 Категория</label>
+                    <select @bind="selectedCategory" class="form-select">
+                        <option value="">Все категории</option>
+                        <option value="Растения">🌱 Растения</option>
+                        <option value="Горшки">🪴 Горшки</option>
+                        <option value="Инструменты">🛠️ Инструменты</option>
+                        <option value="Уход">🧴 Уход</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">💰 Цена ОТ</label>
+                    <input @bind="minPrice" type="number" class="form-control" placeholder="0" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Цена ДО</label>
+                    <input @bind="maxPrice" type="number" class="form-control" placeholder="∞" />
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button @onclick="ApplyFilter" class="btn btn-success flex-fill">Применить</button>
+                <button @onclick="ClearFilters" class="btn btn-reset-pale flex-fill">Сбросить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-reset-pale {
+        border: 2px solid #adb5bd !important;
+        color: #383d42 !important;
+        background-color: transparent;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+    .btn-reset-pale:hover {
+        background-color: #6c757d !important;
+        border-color: #40454a !important;
+        color: #ffffff !important;
+    }
+</style>
+
+@code {
+    private List<Product> allProducts = new();
+    private string selectedCategory = "";
+    private decimal? minPrice;
+    private decimal? maxPrice;
+
+    protected override async Task OnInitializedAsync()
+    {
+        allProducts = await ProductService.GetAllAsync();
+    }
+
+    private void ApplyFilter()
+    {
+        var queryParts = new List<string>();
+        if (!string.IsNullOrEmpty(selectedCategory)) queryParts.Add($"category={Uri.EscapeDataString(selectedCategory)}");
+        if (minPrice.HasValue) queryParts.Add($"min={minPrice.Value}");
+        if (maxPrice.HasValue) queryParts.Add($"max={maxPrice.Value}");
+        
+        var queryString = queryParts.Any() ? "?" + string.Join("&", queryParts) : "";
+        NavManager.NavigateTo($"/{queryString}");
+    }
+
+    private void ClearFilters()
+    {
+        selectedCategory = "";
+        minPrice = null;
+        maxPrice = null;
+    }
+}

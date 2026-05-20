@@ -1,0 +1,22 @@
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-body text-center p-4">
+                    <h4 class="mb-3">️ Требуется авторизация</h4>
+                    <p class="mb-3 text-muted">Для добавления товаров в корзину необходимо войти в систему.</p>
+                    <NavLink href="/login" class="btn btn-success btn-lg">Войти в личный кабинет</NavLink>
+                    <button @onclick="Close" class="btn btn-link text-muted ms-2">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    void Close() => IsVisibleChanged.InvokeAsync(false);
+}

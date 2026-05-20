@@ -1,0 +1,97 @@
+@page "/products/edit/{id:int}"
+@rendermode InteractiveServer
+@using PlantCatalog.Components.Models
+@using PlantCatalog.Components.Services
+@inject IProductService ProductService
+@inject NavigationManager NavigationManager
+
+<h1>Редактирование товара</h1>
+
+@if (isLoading)
+{
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+}
+else if (errorMessage != null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+    <a href="/products" class="btn btn-secondary">Вернуться в каталог</a>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <form @onsubmit="SaveProduct">
+                <div class="mb-3">
+                    <label class="form-label">Название</label>
+                    <input type="text" class="form-control" @bind="product.Name" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Цена</label>
+                    <input type="number" class="form-control" @bind="product.Price" step="0.01" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Категория</label>
+                    <input type="text" class="form-control" @bind="product.Category" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Описание</label>
+                    <textarea class="form-control" @bind="product.Description" rows="3"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ссылка на картинку</label>
+                    <input type="text" class="form-control" @bind="product.ImageUrl" />
+                </div>
+                <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
+                <a href="/products" class="btn btn-secondary ms-2">Отмена</a>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Product product = new();
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var p = await ProductService.GetByIdAsync(Id);
+            if (p != null)
+            {
+                product = p;
+            }
+            else
+            {
+                errorMessage = "Товар не найден.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка загрузки: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveProduct()
+    {
+        try
+        {
+            await ProductService.UpdateAsync(product);
+            NavigationManager.NavigateTo("/products");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ошибка сохранения: {ex.Message}";
+        }
+    }
+}

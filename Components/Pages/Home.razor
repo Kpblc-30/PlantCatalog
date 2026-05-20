@@ -1,0 +1,190 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using PlantCatalog.Components.Shared
+@using PlantCatalog.Components.Models
+@using PlantCatalog.Components.Services
+@inject IProductService ProductService
+@inject CartService CartService
+@inject SessionManager Session
+@inject NavigationManager NavigationManager
+
+<h1 class="text-center mb-3">🌿 Добро пожаловать в магазин растений! 🌿</h1>
+
+<!-- ✅ БАННЕР АВТОРИЗАЦИИ -->
+@if (Session.CurrentUser != null)
+{
+    <div class="alert alert-success d-flex align-items-center mb-3" role="alert">
+        <span class="fs-4 me-2">✅</span>
+        <div><strong>Вы успешно вошли в аккаунт!</strong></div>
+    </div>
+}
+
+<!-- 🔍 КНОПКА ФИЛЬТРА -->
+<div class="text-end mb-4">
+    <a href="/filter" class="btn btn-outline-success">🔍 Фильтр товаров</a>
+</div>
+
+<!-- 🏷️ АКТИВНЫЕ ФИЛЬТРЫ -->
+@if (HasActiveFilters)
+{
+    <div class="alert alert-light border mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <strong> Активные фильтры:</strong>
+            @if (!string.IsNullOrEmpty(FilterCategory)) { <span class="badge bg-secondary ms-2">@FilterCategory</span> }
+            @if (FilterMin.HasValue) { <span class="badge bg-secondary ms-2">От @FilterMin.Value ₽</span> }
+            @if (FilterMax.HasValue) { <span class="badge bg-secondary ms-2">До @FilterMax.Value ₽</span> }
+        </div>
+        <a href="/" class="btn btn-sm btn-outline-danger">✕ Сбросить</a>
+    </div>
+}
+
+@if (products.Count == 0)
+{
+    <div class="alert alert-info">Товаров пока нет. <a href="/products">Добавить товары</a></div>
+}
+else if (filteredProducts.Count == 0 && HasActiveFilters)
+{
+    <div class="alert alert-warning text-center">😕 Ничего не найдено по заданным фильтрам</div>
+}
+else
+{
+    <div class="row">
+        @foreach (var product in filteredProducts)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    @if (!string.IsNullOrEmpty(product.ImageUrl))
+                    {
+                        <img src="@product.ImageUrl" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;" />
+                    }
+                    else
+                    {
+                        <div class="card-img-top bg-success d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <h3 class="text-white">@product.Name</h3>
+                        </div>
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@product.Name</h5>
+                        <p class="text-muted small">@product.Category</p>
+                        <p class="card-text">@product.Description</p>
+                        <h4 class="text-success">@product.Price.ToString("F2") ₽</h4>
+                    </div>
+                    <div class="card-footer bg-white border-top">
+                        @if (CartService.GetCartItems().Count >= 5)
+                        {
+                            <button class="btn btn-secondary w-100" disabled>Корзина переполнена (5/5)</button>
+                        }
+                        else
+                        {
+                            <button @onclick="() => HandleAddToCart(product)" class="btn btn-success w-100 mb-2">
+                                В корзину
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- 🔐 МОДАЛЬНОЕ ОКНО -->
+<AuthModal @bind-IsVisible="showAuthModal" />
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert alert-@(messageType == "success" ? "success" : "danger") alert-dismissible fade show" role="alert">
+        @message <button type="button" class="btn-close" @onclick="ClearMessage"></button>
+    </div>
+}
+
+@code {
+    private List<Product> products = new();
+    private List<Product> filteredProducts = new();
+    private string message = "";
+    private string messageType = "";
+    private bool showAuthModal = false;
+    
+    // 🔥 ПОЛЕ ДЛЯ ОБРАБОТЧИКА СОБЫТИЯ (чтобы корректно отписаться)
+    private Action? _cartChangedHandler;
+
+    // 🔗 ПРИВЯЗКА К URL-ПАРАМЕТРАМ
+    [SupplyParameterFromQuery(Name = "category")]
+    public string? FilterCategory { get; set; }
+    [SupplyParameterFromQuery(Name = "min")]
+    public decimal? FilterMin { get; set; }
+    [SupplyParameterFromQuery(Name = "max")]
+    public decimal? FilterMax { get; set; }
+
+    public bool HasActiveFilters => !string.IsNullOrEmpty(FilterCategory) || FilterMin.HasValue || FilterMax.HasValue;
+
+    protected override void OnInitialized()
+    {
+        // 🔥 Создаём обработчик один раз и сохраняем в поле
+        _cartChangedHandler = () => InvokeAsync(StateHasChanged);
+        CartService.OnCartChanged += _cartChangedHandler;
+    }
+
+    public void Dispose()
+    {
+        // 🔥 Корректно отписываемся, используя тот же экземпляр делегата
+        CartService.OnCartChanged -= _cartChangedHandler;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await ProductService.GetAllAsync();
+        ApplyFilters();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        if (!products.Any()) return;
+        
+        filteredProducts = products.Where(p =>
+            (string.IsNullOrEmpty(FilterCategory) || p.Category == FilterCategory) &&
+            (!FilterMin.HasValue || p.Price >= FilterMin.Value) &&
+            (!FilterMax.HasValue || p.Price <= FilterMax.Value)
+        ).ToList();
+    }
+
+    private async Task HandleAddToCart(Product product)
+    {
+        if (Session.CurrentUser == null)
+        {
+            showAuthModal = true;
+            StateHasChanged();
+            return;
+        }
+        await AddToCart(product.Id);
+    }
+
+    private async Task AddToCart(int productId)
+    {
+        try
+        {
+            await CartService.AddToCartAsync(productId);
+            message = "✅ Товар добавлен в корзину!";
+            messageType = "success";
+            // 🔥 Явное обновление интерфейса
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            message = $"❌ Ошибка: {ex.Message}";
+            messageType = "danger";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ClearMessage()
+    {
+        message = "";
+        messageType = "";
+        StateHasChanged();
+    }
+}

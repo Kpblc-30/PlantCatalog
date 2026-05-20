@@ -1,0 +1,55 @@
+@page "/cart"
+@using PlantCatalog.Components.Models
+@using PlantCatalog.Components.Services
+@inject CartService CartService
+<h1>Ваша корзина</h1>
+<div class="alert alert-info">
+    <strong>Лимит корзины:</strong> Вы можете добавить максимум 5 товаров.
+    Текущее количество: @CartService.GetCartItems().Count / 5
+</div>
+
+@if (CartService.GetCartItems().Count == 0)
+{
+    <div class="alert alert-warning">
+        Корзина пуста. <a href="/">Перейти в каталог</a>
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Цена</th>
+                <th>Кол-во</th>
+                <th>Сумма</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in CartService.GetCartItems())
+            {
+                <tr>
+                    <td>@item.Product?.Name</td>
+                    <td>@item.Product?.Price ₽</td>
+                    <td>@item.Quantity</td>
+                    <td>@(item.Product?.Price * item.Quantity) ₽</td>
+                    <td>
+                        <button @onclick="() => CartService.RemoveFromCart(item.ProductId)" class="btn btn-sm btn-danger">Удалить</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-end"><strong>Итого:</strong></td>
+                <td><strong>@CartService.GetTotalPrice() ₽</strong></td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <div class="mt-3">
+        <button @onclick="CartService.ClearCart" class="btn btn-warning">Очистить корзину</button>
+    </div>
+}

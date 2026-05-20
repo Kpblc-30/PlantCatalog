@@ -1,0 +1,76 @@
+@page "/login"
+@rendermode InteractiveServer
+@using PlantCatalog.Components.Models
+@using PlantCatalog.Components.Services
+@inject UserService UserService
+@inject SessionManager SessionManager
+@inject NavigationManager NavigationManager
+
+<h3>Вход в аккаунт</h3>
+
+<EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="p-4 card shadow-sm" style="max-width: 400px;">
+    <DataAnnotationsValidator />
+    
+    <div class="mb-3">
+        <label class="form-label">Логин</label>
+        <InputText @bind-Value="loginModel.Login" class="form-control" placeholder="Введите логин" />
+        <ValidationMessage For="@(() => loginModel.Login)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Пароль</label>
+        <InputText type="password" @bind-Value="loginModel.Password" class="form-control" placeholder="Введите пароль" />
+        <ValidationMessage For="@(() => loginModel.Password)" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    <button type="submit" class="btn btn-success w-100">Войти</button>
+</EditForm>
+
+<div class="mt-3">
+    <NavLink href="/register" class="btn btn-link">Ещё нет аккаунта? Зарегистрироваться</NavLink>
+</div>
+
+@code {
+    private LoginDto loginModel = new();
+    private string error = "";
+
+    private async Task HandleLogin()
+    {
+        error = "";
+        
+        var user = await UserService.LoginAsync(
+            loginModel.Login!, 
+            loginModel.Password!
+        );
+
+        if (user != null)
+        {
+            // Сохраняем пользователя в сессии
+            SessionManager.CurrentUser = user;
+            
+            // 👇 УВЕДОМЛЯЕМ ВСЕ КОМПОНЕНТЫ ОБ ИЗМЕНЕНИИ
+            SessionManager.NotifyStateChanged();
+            
+            // Перенаправляем на главную
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            error = "Неверный логин или пароль";
+        }
+    }
+
+    public class LoginDto
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Логин обязателен")]
+        public string? Login { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Пароль обязателен")]
+        public string? Password { get; set; }
+    }
+}

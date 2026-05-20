@@ -1,0 +1,92 @@
+@page "/register"
+@rendermode InteractiveServer
+@using PlantCatalog.Components.Models
+@using PlantCatalog.Components.Services
+@inject UserService UserService
+@inject SessionManager SessionManager
+@inject NavigationManager NavigationManager
+
+<h3>📝 Регистрация</h3>
+
+<EditForm Model="@registerModel" OnValidSubmit="HandleRegister" class="p-4 card shadow-sm" style="max-width: 400px;">
+    <DataAnnotationsValidator />
+    
+    <div class="mb-3">
+        <label class="form-label">Ваше имя (отображаемое)</label>
+        <InputText @bind-Value="registerModel.Name" class="form-control" placeholder="Иван" />
+        <ValidationMessage For="@(() => registerModel.Name)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Логин</label>
+        <InputText @bind-Value="registerModel.Login" class="form-control" placeholder="ivan123" />
+        <ValidationMessage For="@(() => registerModel.Login)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Пароль</label>
+        <InputText type="password" @bind-Value="registerModel.Password" class="form-control" placeholder="******" />
+        <ValidationMessage For="@(() => registerModel.Password)" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+</EditForm>
+
+<div class="mt-3">
+    <a href="/login" class="btn btn-link">Уже есть аккаунт? Войти</a>
+</div>
+
+@code {
+    private RegisterDto registerModel = new();
+    private string error = "";
+
+    private async Task HandleRegister()
+    {
+        error = "";
+        
+        bool success = await UserService.RegisterAsync(
+            registerModel.Name!, 
+            registerModel.Login!, 
+            registerModel.Password!
+        );
+
+        if (success)
+        {
+            // 🔥 Создаём пользователя с обязательными полями
+            var user = new User 
+            { 
+                Name = registerModel.Name, 
+                Login = registerModel.Login ?? "", // 🔥 Гарантируем не-null значение
+                PasswordHash = "" // Хэш установится внутри UserService
+            };
+            
+            // 🔥 Устанавливаем текущего пользователя
+            SessionManager.CurrentUser = user;
+            
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            error = "Такой логин уже существует!";
+        }
+    }
+
+    public class RegisterDto
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Имя обязательно")]
+        public string? Name { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Логин обязателен")]
+        [System.ComponentModel.DataAnnotations.MinLength(3, ErrorMessage = "Минимум 3 символа")]
+        public string? Login { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Пароль обязателен")]
+        [System.ComponentModel.DataAnnotations.MinLength(4, ErrorMessage = "Минимум 4 символа")]
+        public string? Password { get; set; }
+    }
+}

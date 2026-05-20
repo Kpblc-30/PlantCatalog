@@ -1,0 +1,43 @@
+@page "/products/create"
+@inject NavigationManager NavigationManager
+@using PlantCatalog.Components.Models
+@using PlantCatalog.Components.Services
+@inject IProductService ProductService
+<h1>Добавить товар</h1>
+<div class="row">
+    <div class="col-md-6">
+        <form @onsubmit="SaveProduct">
+            <div class="mb-3">
+                <label class="form-label">Название</label>
+                <input type="text" class="form-control" @bind="product.Name" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Цена</label>
+                <input type="number" class="form-control" @bind="product.Price" step="0.01" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Категория</label>
+                <input type="text" class="form-control" @bind="product.Category" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Описание</label>
+                <textarea class="form-control" @bind="product.Description" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Ссылка на картинку</label>
+                <input type="text" class="form-control" @bind="product.ImageUrl" />
+            </div>
+            <button type="submit" class="btn btn-success">Сохранить</button>
+            <a href="/products" class="btn btn-secondary ms-2">Отмена</a>
+        </form>
+    </div>
+</div>
+@code {
+    private Product product = new();
+
+    private async Task SaveProduct()
+    {
+        await ProductService.AddAsync(product);
+        NavigationManager.NavigateTo("/products");
+    }
+}
