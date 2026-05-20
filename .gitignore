@@ -1,6 +1,8 @@
 bin/
 obj/
 .vs/
+*.db
+*.sqlite
 *.user
 *.suo
-*.db
+*.lock.json
