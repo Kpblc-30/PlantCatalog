@@ -1,4 +1,4 @@
-# 🌿 PlantCatalog — Магазин растений
+# 🌿 PlantCatalog — Магазин растений 🌿
 
 Веб-приложение для каталогизации и продажи комнатных растений.
 
@@ -6,7 +6,7 @@
 
 Веб-приложение для каталогизации и продажи комнатных растений, горшков и аксессуаров. Реализовано на **.NET 8 + ASP.NET Core Blazor Server** с использованием базы данных SQLite.
 
-## 🛠 Технологии
+## Технологии
 
 - **.NET 8**, ASP.NET Core, Blazor Server (InteractiveServer)
 - **Entity Framework Core** (CodeFirst подход, SQLite)
